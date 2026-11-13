@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Realm VC</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Realm VC" />
+  <meta name="theme-color" content="#0b0f14" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" href="icon-192.png" />
+</head>
+<body>
+  <main id="app">
+    <section id="home" class="screen">
+      <header class="brand">
+        <p class="eyebrow">Phone group call</p>
+        <h1><span>REALM</span> VC</h1>
+        <p class="lede">A 3-person voice call that runs only on your phone. It does not connect to a Minecraft Realm, a Minecraft server, or any game.</p>
+      </header>
+
+      <div class="actions">
+        <button id="btnCreate" class="btn primary" type="button">Create room</button>
+        <div class="join-row">
+          <label class="sr-only" for="joinCode">Room code</label>
+          <input id="joinCode" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="Enter room code" />
+          <button id="btnJoin" class="btn secondary" type="button">Join</button>
+        </div>
+        <p id="homeError" class="error" hidden></p>
+      </div>
+
+      <ol class="steps">
+        <li>Allow the microphone when asked.</li>
+        <li>Create a room and share the short code.</li>
+        <li>Up to two other people join with that code.</li>
+      </ol>
+    </section>
+
+    <section id="room" class="screen" hidden>
+      <header class="room-head">
+        <p class="eyebrow" id="roomRole">In a room</p>
+        <h2 id="roomCodeDisplay" class="code">——————</h2>
+        <div class="code-actions">
+          <button id="btnCopy" class="btn ghost" type="button">Copy code</button>
+          <button id="btnShare" class="btn ghost" type="button">Share</button>
+        </div>
+        <p id="roomStatus" class="status">Starting…</p>
+      </header>
+
+      <ul id="people" class="people"></ul>
+
+      <div class="call-bar">
+        <button id="btnMute" class="btn round" type="button" aria-pressed="false">Mute</button>
+        <button id="btnLeave" class="btn round danger" type="button">Leave</button>
+      </div>
+    </section>
+  </main>
+  <script src="peerjs.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

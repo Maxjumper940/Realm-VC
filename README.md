@@ -18,3 +18,14 @@ A room holds up to 3 people. During a call you can mute your microphone or leave
 
 - APK on `main`: https://github.com/Maxjumper940/Realm-VC/raw/main/Realm-VC.apk
 - Raw file URL: https://raw.githubusercontent.com/Maxjumper940/Realm-VC/main/Realm-VC.apk
+
+## iPhone (web app)
+
+There's no App Store app yet. iPhone users can use the web version instead:
+
+1. Open https://maxjumper940.github.io/Realm-VC/ in **Safari**.
+2. Tap the Share button, then **Add to Home Screen**.
+3. Open Realm VC from your Home Screen and allow the microphone.
+4. Create a room and share the code, or enter a code to join. Android and iPhone users can be in the same room.
+
+Keep the app open while you're in a call. iPhone may pause the mic if you switch apps or lock the screen.

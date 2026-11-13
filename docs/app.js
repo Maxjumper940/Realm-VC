@@ -1,0 +1,471 @@
+(function () {
+  const MAX_PEOPLE = 3;
+  const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const PEER_PREFIX = "rvc-";
+  const ICE_CONFIG = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" }
+    ]
+  };
+  const PEER_OPTIONS = {
+    host: "0.peerjs.com",
+    port: 443,
+    path: "/",
+    secure: true,
+    debug: 1,
+    config: ICE_CONFIG
+  };
+
+  const home = document.getElementById("home");
+  const room = document.getElementById("room");
+  const homeError = document.getElementById("homeError");
+  const joinInput = document.getElementById("joinCode");
+  const btnCreate = document.getElementById("btnCreate");
+  const btnJoin = document.getElementById("btnJoin");
+  const btnMute = document.getElementById("btnMute");
+  const btnLeave = document.getElementById("btnLeave");
+  const btnCopy = document.getElementById("btnCopy");
+  const btnShare = document.getElementById("btnShare");
+  const roomCodeDisplay = document.getElementById("roomCodeDisplay");
+  const roomStatus = document.getElementById("roomStatus");
+  const roomRole = document.getElementById("roomRole");
+  const peopleList = document.getElementById("people");
+
+  let localStream = null;
+  let peer = null;
+  let roomCode = "";
+  let isHost = false;
+  let muted = false;
+  let leaving = false;
+  const remotes = new Map(); // peerId -> { conn, call, el }
+
+  function setHomeError(msg) {
+    if (!msg) {
+      homeError.hidden = true;
+      homeError.textContent = "";
+      return;
+    }
+    homeError.hidden = false;
+    homeError.textContent = msg;
+  }
+
+  function setBusy(busy) {
+    btnCreate.disabled = busy;
+    btnJoin.disabled = busy;
+    joinInput.disabled = busy;
+  }
+
+  function randomCode() {
+    let out = "";
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 6; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+    return out;
+  }
+
+  function normalizeCode(raw) {
+    return String(raw || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 6);
+  }
+
+  function hostIdFor(code) {
+    return PEER_PREFIX + code;
+  }
+
+  function native() {
+    return typeof RealmVC !== "undefined" ? RealmVC : null;
+  }
+
+  async function getMic() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("This browser cannot use the microphone. On iPhone, open this page in Safari (iOS 14.3 or newer).");
+    }
+    return navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
+      video: false
+    });
+  }
+
+  function showRoom() {
+    home.hidden = true;
+    room.hidden = false;
+    roomCodeDisplay.textContent = roomCode;
+    roomRole.textContent = isHost ? "Your room" : "Joined room";
+    renderPeople();
+  }
+
+  function showHome() {
+    room.hidden = true;
+    home.hidden = false;
+    roomCodeDisplay.textContent = "——————";
+    roomStatus.textContent = "";
+  }
+
+  function renderPeople() {
+    const items = [];
+    items.push({
+      name: "You",
+      meta: muted ? "Muted" : "Microphone on",
+      live: !muted
+    });
+    remotes.forEach((info, id) => {
+      items.push({
+        name: shortName(id),
+        meta: info.stream ? "Connected" : "Connecting…",
+        live: !!info.stream
+      });
+    });
+    peopleList.innerHTML = items.map((p) => (
+      `<li><span class="who"><span class="dot${p.live ? "" : " off"}"></span>${escapeHtml(p.name)}</span><span class="meta">${escapeHtml(p.meta)}</span></li>`
+    )).join("");
+    const total = 1 + remotes.size;
+    if (!leaving) {
+      if (total >= MAX_PEOPLE) {
+        roomStatus.textContent = "Room is full (3 of 3).";
+      } else if (isHost) {
+        roomStatus.textContent = total === 1
+          ? "Waiting for others. Share the code to invite up to 2 people."
+          : `${total} of 3 in the room.`;
+      } else {
+        roomStatus.textContent = `${total} of 3 in the room.`;
+      }
+    }
+  }
+
+  function shortName(id) {
+    const trimmed = String(id || "").replace(PEER_PREFIX, "");
+    return "Guest " + trimmed.slice(-4).toUpperCase();
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function ensureRemote(id) {
+    if (!remotes.has(id)) remotes.set(id, { conn: null, call: null, stream: null });
+    return remotes.get(id);
+  }
+
+  function attachStream(id, stream) {
+    const info = ensureRemote(id);
+    info.stream = stream;
+    let audio = document.getElementById("audio-" + id);
+    if (!audio) {
+      audio = document.createElement("audio");
+      audio.id = "audio-" + id;
+      audio.autoplay = true;
+      audio.setAttribute("playsinline", "true");
+      audio.style.display = "none";
+      document.body.appendChild(audio);
+    }
+    audio.srcObject = stream;
+    const play = audio.play();
+    if (play && play.catch) play.catch(() => {});
+    renderPeople();
+  }
+
+  function dropRemote(id, reason) {
+    const info = remotes.get(id);
+    if (!info) return;
+    try { if (info.call) info.call.close(); } catch (e) {}
+    try { if (info.conn) info.conn.close(); } catch (e) {}
+    const audio = document.getElementById("audio-" + id);
+    if (audio) {
+      audio.srcObject = null;
+      audio.remove();
+    }
+    remotes.delete(id);
+    renderPeople();
+    if (reason) roomStatus.textContent = reason;
+  }
+
+  function sendTo(conn, payload) {
+    if (conn && conn.open) conn.send(payload);
+  }
+
+  function broadcast(payload, exceptId) {
+    remotes.forEach((info, id) => {
+      if (id !== exceptId) sendTo(info.conn, payload);
+    });
+  }
+
+  function handleMessage(fromId, data) {
+    if (!data || typeof data !== "object") return;
+    if (data.type === "welcome") {
+      const others = Array.isArray(data.peers) ? data.peers : [];
+      others.forEach((otherId) => {
+        if (otherId && otherId !== peer.id) connectToPeer(otherId, true);
+      });
+      renderPeople();
+    } else if (data.type === "peer-joined") {
+      // The new peer will call us for media; just reserve a slot in the list.
+      if (data.id && data.id !== peer.id) ensureRemote(data.id);
+      renderPeople();
+    } else if (data.type === "peer-left") {
+      dropRemote(data.id, "Someone left the room.");
+    } else if (data.type === "room-full") {
+      roomStatus.textContent = "That room already has 3 people.";
+      leaveRoom("That room already has 3 people.");
+    } else if (data.type === "host-left") {
+      roomStatus.textContent = "The host left. You can keep talking or leave.";
+    }
+  }
+
+  function hookDataConnection(conn, expectIncoming) {
+    const id = conn.peer;
+    const info = ensureRemote(id);
+    info.conn = conn;
+    conn.on("data", (data) => handleMessage(id, data));
+    conn.on("close", () => dropRemote(id, "Someone disconnected."));
+    conn.on("error", () => dropRemote(id, "A connection dropped."));
+    if (!expectIncoming) {
+      // Host or initiator may still be opening.
+    }
+    renderPeople();
+  }
+
+  function hookMediaCall(call) {
+    const id = call.peer;
+    const info = ensureRemote(id);
+    info.call = call;
+    call.on("stream", (stream) => attachStream(id, stream));
+    call.on("close", () => dropRemote(id, "Someone disconnected."));
+    call.on("error", () => dropRemote(id, "A voice link dropped."));
+  }
+
+  function connectToPeer(otherId, alsoCall) {
+    if (!peer || otherId === peer.id || remotes.has(otherId) && remotes.get(otherId).conn) {
+      if (alsoCall && remotes.has(otherId) && !remotes.get(otherId).call && localStream) {
+        const call = peer.call(otherId, localStream);
+        hookMediaCall(call);
+      }
+      return;
+    }
+    const conn = peer.connect(otherId, { reliable: true });
+    hookDataConnection(conn, false);
+    conn.on("open", () => {});
+    if (alsoCall && localStream) {
+      const call = peer.call(otherId, localStream);
+      hookMediaCall(call);
+    }
+  }
+
+  function bindPeerEvents(createdAsHost) {
+    peer.on("connection", (conn) => {
+      if (createdAsHost && remotes.size >= MAX_PEOPLE - 1) {
+        conn.on("open", () => {
+          sendTo(conn, { type: "room-full" });
+          setTimeout(() => conn.close(), 400);
+        });
+        return;
+      }
+      hookDataConnection(conn, true);
+      conn.on("open", () => {
+        if (createdAsHost) {
+          const others = [];
+          remotes.forEach((_, id) => {
+            if (id !== conn.peer) others.push(id);
+          });
+          sendTo(conn, { type: "welcome", peers: others });
+          broadcast({ type: "peer-joined", id: conn.peer }, conn.peer);
+        }
+      });
+    });
+
+    peer.on("call", (call) => {
+      if (localStream) call.answer(localStream);
+      hookMediaCall(call);
+    });
+
+    peer.on("disconnected", () => {
+      if (!leaving && peer && !peer.destroyed) {
+        roomStatus.textContent = "Reconnecting…";
+        try { peer.reconnect(); } catch (e) {}
+      }
+    });
+  }
+
+  function createPeer(id) {
+    return new Promise((resolve, reject) => {
+      const opts = Object.assign({}, PEER_OPTIONS);
+      const instance = id ? new Peer(id, opts) : new Peer(opts);
+      const timer = setTimeout(() => {
+        try { instance.destroy(); } catch (e) {}
+        reject(new Error("Could not reach the call network. Check your internet connection and try again."));
+      }, 12000);
+      instance.on("open", () => {
+        clearTimeout(timer);
+        resolve(instance);
+      });
+      instance.on("error", (err) => {
+        clearTimeout(timer);
+        const type = err && err.type;
+        if (type === "unavailable-id") {
+          reject(Object.assign(new Error("id-taken"), { type }));
+        } else if (type === "peer-unavailable") {
+          reject(new Error("No room was found with that code."));
+        } else if (type === "network" || type === "server-error" || type === "socket-error") {
+          reject(new Error("Could not reach the call network. Check your internet connection and try again."));
+        } else {
+          reject(new Error((err && err.message) || "A call error occurred."));
+        }
+      });
+    });
+  }
+
+  async function startHost() {
+    setHomeError("");
+    setBusy(true);
+    try {
+      localStream = await getMic();
+      let attempts = 0;
+      let code = randomCode();
+      while (attempts < 6) {
+        try {
+          peer = await createPeer(hostIdFor(code));
+          break;
+        } catch (err) {
+          if (err && err.type === "unavailable-id") {
+            code = randomCode();
+            attempts += 1;
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (!peer) throw new Error("Could not create a room. Please try again.");
+      isHost = true;
+      roomCode = code;
+      leaving = false;
+      bindPeerEvents(true);
+      showRoom();
+      const bridge = native();
+      if (bridge) bridge.onCallStarted(roomCode);
+    } catch (err) {
+      cleanupMedia();
+      setHomeError(err.message || String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startJoin(rawCode) {
+    const code = normalizeCode(rawCode);
+    if (code.length !== 6) {
+      setHomeError("Enter the 6-character room code.");
+      return;
+    }
+    setHomeError("");
+    setBusy(true);
+    try {
+      localStream = await getMic();
+      peer = await createPeer(null);
+      isHost = false;
+      roomCode = code;
+      leaving = false;
+      bindPeerEvents(false);
+      const dest = hostIdFor(code);
+      const conn = peer.connect(dest, { reliable: true });
+      hookDataConnection(conn, false);
+      const opened = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("No room was found with that code, or the host is offline.")), 10000);
+        conn.on("open", () => { clearTimeout(timer); resolve(true); });
+        conn.on("error", () => {
+          clearTimeout(timer);
+          reject(new Error("No room was found with that code, or the host is offline."));
+        });
+        peer.on("error", (err) => {
+          if (err && err.type === "peer-unavailable") {
+            clearTimeout(timer);
+            reject(new Error("No room was found with that code."));
+          }
+        });
+      });
+      if (!opened) throw new Error("Could not join that room.");
+      const call = peer.call(dest, localStream);
+      hookMediaCall(call);
+      showRoom();
+      const bridge = native();
+      if (bridge) bridge.onCallStarted(roomCode);
+    } catch (err) {
+      cleanupMedia();
+      setHomeError(err.message || String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cleanupMedia() {
+    remotes.forEach((_, id) => dropRemote(id));
+    remotes.clear();
+    if (localStream) {
+      localStream.getTracks().forEach((t) => t.stop());
+      localStream = null;
+    }
+    if (peer) {
+      try { peer.destroy(); } catch (e) {}
+      peer = null;
+    }
+    muted = false;
+    btnMute.setAttribute("aria-pressed", "false");
+    btnMute.textContent = "Mute";
+  }
+
+  function leaveRoom(message) {
+    leaving = true;
+    broadcast({ type: isHost ? "host-left" : "peer-left", id: peer ? peer.id : undefined });
+    cleanupMedia();
+    const bridge = native();
+    if (bridge) bridge.onCallEnded();
+    showHome();
+    if (message) setHomeError(message);
+    leaving = false;
+  }
+
+  btnCreate.addEventListener("click", startHost);
+  btnJoin.addEventListener("click", () => startJoin(joinInput.value));
+  joinInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") startJoin(joinInput.value);
+  });
+  joinInput.addEventListener("input", () => {
+    const caret = joinInput.selectionStart;
+    const normalized = normalizeCode(joinInput.value);
+    if (joinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "") !== normalized) {
+      joinInput.value = normalized;
+      try { joinInput.setSelectionRange(caret, caret); } catch (e) {}
+    }
+  });
+
+  btnMute.addEventListener("click", () => {
+    if (!localStream) return;
+    muted = !muted;
+    localStream.getAudioTracks().forEach((t) => { t.enabled = !muted; });
+    btnMute.setAttribute("aria-pressed", muted ? "true" : "false");
+    btnMute.textContent = muted ? "Unmute" : "Mute";
+    renderPeople();
+  });
+
+  btnLeave.addEventListener("click", () => leaveRoom());
+  btnCopy.addEventListener("click", () => {
+    const bridge = native();
+    if (bridge) bridge.copyCode(roomCode);
+    else if (navigator.clipboard) navigator.clipboard.writeText(roomCode);
+  });
+  btnShare.addEventListener("click", () => {
+    const bridge = native();
+    if (bridge) bridge.shareCode(roomCode);
+    else if (navigator.share) navigator.share({ title: "Realm VC", text: "Join my Realm VC room: " + roomCode + "\n" + location.href }).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(roomCode);
+  });
+})();
