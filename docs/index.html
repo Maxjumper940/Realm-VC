@@ -38,6 +38,28 @@
         <li>Create a room and share the short code.</li>
         <li>Up to two other people join with that code.</li>
       </ol>
+
+      <div id="installCard" class="install-card">
+        <h2>Add Realm VC to your Home Screen</h2>
+        <p class="install-sub">It'll open like a normal app, with its own icon.</p>
+        <div class="install-os">
+          <h3>iPhone / iPad (Safari)</h3>
+          <ol>
+            <li>Open this page in <b>Safari</b>.</li>
+            <li>Tap the <b>Share</b> button (the square with an up arrow) at the bottom.</li>
+            <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+            <li>Tap <b>Add</b>, then open Realm VC from your Home Screen.</li>
+          </ol>
+        </div>
+        <div class="install-os">
+          <h3>Android (Chrome)</h3>
+          <ol>
+            <li>Tap the <b>&#8942;</b> menu at the top right.</li>
+            <li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>
+          </ol>
+          <p class="install-sub">Or get the <a href="https://github.com/Maxjumper940/Realm-VC/raw/main/Realm-VC.apk">Android APK</a>.</p>
+        </div>
+      </div>
     </section>
 
     <section id="room" class="screen" hidden>
@@ -61,5 +83,10 @@
   </main>
   <script src="peerjs.min.js"></script>
   <script src="app.js"></script>
+  <script>
+    if (window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches) {
+      var c = document.getElementById("installCard"); if (c) c.hidden = true;
+    }
+  </script>
 </body>
 </html>

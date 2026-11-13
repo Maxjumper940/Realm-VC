@@ -136,3 +136,12 @@ input:focus { outline: 2px solid var(--amber); }
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+.install-card { margin: 28px 0 8px; padding: 18px 18px 8px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+.install-card[hidden] { display: none; }
+.install-card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.install-card h3 { margin: 14px 0 4px; font-size: 0.95rem; opacity: 0.9; }
+.install-card ol { padding-left: 1.2rem; margin: 4px 0 8px; }
+.install-card li { margin: 6px 0; line-height: 1.4; }
+.install-sub { margin: 0 0 6px; opacity: 0.75; font-size: 0.9rem; }
+.install-card a { color: inherit; text-decoration: underline; }
