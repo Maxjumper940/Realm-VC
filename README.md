@@ -1,6 +1,6 @@
 # Realm VC
 
-Realm VC is a 3-person group voice call that runs only on your phone.
+Realm VC is a group voice call for up to 10 people that runs only on your phone.
 
 It does **not** connect to a Minecraft Realm, a Minecraft server, or any game.
 
@@ -12,7 +12,7 @@ It does **not** connect to a Minecraft Realm, a Minecraft server, or any game.
 4. Tap **Create room** to get a short room code, then share that code with the other people.
 5. They open the same app, tap **Join**, and enter the code.
 
-A room holds up to 3 people. During a call you can mute your microphone or leave the room.
+A room holds up to 10 people. During a call you can mute your microphone or leave the room.
 
 ## Download
 

@@ -1,12 +1,19 @@
 (function () {
-  const MAX_PEOPLE = 3;
+  const MAX_PEOPLE = 10;
   const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const PEER_PREFIX = "rvc-";
   const ICE_CONFIG = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" }
-    ]
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun.relay.metered.ca:80" },
+      // Relay servers so phones on mobile data / different networks can still hear each other.
+      { urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443", "turn:openrelay.metered.ca:443?transport=tcp", "turns:openrelay.metered.ca:443"],
+        username: "openrelayproject", credential: "openrelayproject" },
+      { urls: ["turn:freestun.net:3478", "turn:freestun.net:3478?transport=tcp", "turns:freestun.net:5349"],
+        username: "free", credential: "free" }
+    ],
+    iceCandidatePoolSize: 2
   };
   const PEER_OPTIONS = {
     host: "0.peerjs.com",
@@ -128,7 +135,7 @@
     const total = 1 + remotes.size;
     if (!leaving) {
       if (total >= MAX_PEOPLE) {
-        roomStatus.textContent = "Room is full (3 of 3).";
+        roomStatus.textContent = "Room is full (" + MAX_PEOPLE + " of " + MAX_PEOPLE + ").";
       } else if (isHost) {
         roomStatus.textContent = total === 1
           ? "Waiting for others. Share the code to invite up to 2 people."
@@ -153,7 +160,7 @@
   }
 
   function ensureRemote(id) {
-    if (!remotes.has(id)) remotes.set(id, { conn: null, call: null, stream: null });
+    if (!remotes.has(id)) remotes.set(id, { conn: null, call: null, stream: null, since: Date.now() });
     return remotes.get(id);
   }
 
@@ -215,8 +222,8 @@
     } else if (data.type === "peer-left") {
       dropRemote(data.id, "Someone left the room.");
     } else if (data.type === "room-full") {
-      roomStatus.textContent = "That room already has 3 people.";
-      leaveRoom("That room already has 3 people.");
+      roomStatus.textContent = "That room is full (" + MAX_PEOPLE + " people).";
+      leaveRoom("That room is full (" + MAX_PEOPLE + " people).");
     } else if (data.type === "host-left") {
       roomStatus.textContent = "The host left. You can keep talking or leave.";
     }
@@ -226,6 +233,7 @@
     const id = conn.peer;
     const info = ensureRemote(id);
     info.conn = conn;
+    conn.on("open", () => { conn._everOpen = true; });
     conn.on("data", (data) => handleMessage(id, data));
     conn.on("close", () => dropRemote(id, "Someone disconnected."));
     conn.on("error", () => dropRemote(id, "A connection dropped."));
@@ -379,7 +387,7 @@
       const conn = peer.connect(dest, { reliable: true });
       hookDataConnection(conn, false);
       const opened = await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("No room was found with that code, or the host is offline.")), 10000);
+        const timer = setTimeout(() => reject(new Error("No room was found with that code, or the host is offline.")), 25000);
         conn.on("open", () => { clearTimeout(timer); resolve(true); });
         conn.on("error", () => {
           clearTimeout(timer);
@@ -455,6 +463,18 @@
     btnMute.textContent = muted ? "Unmute" : "Mute";
     renderPeople();
   });
+
+  // realmvcSweep: anyone still "Connecting…" after 30s, or whose link closed, is removed so the room doesn't fill with ghosts.
+  setInterval(() => {
+    if (!peer) return;
+    const now = Date.now();
+    remotes.forEach((info, id) => {
+      const dead = info.conn && info.conn.open === false && info.conn._everOpen;
+      if ((!info.stream && now - (info.since || now) > 30000) || dead) {
+        dropRemote(id, "Someone couldn't connect and was removed.");
+      }
+    });
+  }, 5000);
 
   btnLeave.addEventListener("click", () => leaveRoom());
   btnCopy.addEventListener("click", () => {
