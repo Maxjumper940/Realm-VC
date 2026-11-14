@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Realm VC</title>
-  <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -13,14 +12,32 @@
   <meta name="theme-color" content="#07040a" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="rv-grid" aria-hidden="true"></div>
+
+  <div id="intro" class="intro" aria-hidden="true">
+    <p class="rec"><span class="rec-dot"></span>LIVE <span id="introClock">00:00:00:00</span></p>
+    <div class="intro-center">
+      <div class="intro-mark"><svg class="rv-logo" viewBox="0 0 64 64" aria-hidden="true"><rect class="rv-logo-mic" x="22" y="6" width="20" height="32" rx="10" fill="#ff4fa8"/><path class="rv-logo-arc" d="M14 30c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path class="rv-logo-stem" d="M32 48v9M22 58h20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg></div>
+      <div id="introWelcome" class="intro-welcome" hidden>
+        <p class="intro-small">Welcome back,</p>
+        <p class="intro-name rv-name" id="introName"></p>
+        <p class="intro-small">Ready to talk?</p>
+      </div>
+    </div>
+    <div class="intro-tracks">
+      <div class="track t1"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="track t2"><i></i><i></i><i></i><i></i></div>
+      <div class="track t3"><i></i><i></i><i></i></div>
+      <span class="playhead"></span>
+    </div>
+  </div>
+
   <main id="app">
     <section id="nameScreen" class="screen" hidden>
-      <header class="brand">
-        <p class="eyebrow">Phone group call</p>
-        <h1><span>REALM</span> VC</h1>
-      </header>
+      <div class="top-brand"><svg class="rv-logo" viewBox="0 0 64 64" aria-hidden="true"><rect class="rv-logo-mic" x="22" y="6" width="20" height="32" rx="10" fill="#ff4fa8"/><path class="rv-logo-arc" d="M14 30c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path class="rv-logo-stem" d="M32 48v9M22 58h20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg><span class="wordmark">Realm VC</span></div>
       <div class="gate-head">
         <h2>What should we call you?</h2>
         <p class="gate-sub">This is the name everyone in your room will see.</p>
@@ -28,65 +45,105 @@
       <form id="nameForm" class="gate-card" novalidate>
         <label class="field-label" for="nameInput">Your name</label>
         <div class="field">
-          <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          <span class="field-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span>
           <input id="nameInput" class="name-input" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" placeholder="e.g. Veylin" />
         </div>
+        <p class="name-preview">Shows as <span class="rv-name" id="namePreview">Veylin</span></p>
         <p id="nameError" class="error" hidden></p>
         <button class="btn primary" type="submit">Continue</button>
         <p class="gate-note">Your name stays on this phone. Change it any time.</p>
       </form>
     </section>
 
-    <section id="home" class="screen" hidden>
-      <header class="brand">
-        <p class="eyebrow">Phone group call</p>
-        <h1><span>REALM</span> VC</h1>
-        <p class="lede">A group voice call for up to 10 people that runs only on your phone. It does not connect to a Minecraft Realm, a Minecraft server, or any game.</p>
-      </header>
+    <section id="home" class="screen tabbed" hidden>
+      <div class="tab-page" data-page="call">
+        <header class="home-head">
+          <div class="top-brand"><svg class="rv-logo" viewBox="0 0 64 64" aria-hidden="true"><rect class="rv-logo-mic" x="22" y="6" width="20" height="32" rx="10" fill="#ff4fa8"/><path class="rv-logo-arc" d="M14 30c0 10 8 18 18 18s18-8 18-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path class="rv-logo-stem" d="M32 48v9M22 58h20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg><span class="wordmark">Realm VC</span></div>
+          <button class="icon-btn" type="button" data-goto="me" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        </header>
+        <p class="greet">Hi <span class="rv-name rv-name-sm" id="helloName"></span>, who are we calling today?</p>
 
-      <div class="hello-row">
-        <span class="hello-avatar" id="helloAvatar">?</span>
-        <span class="hello-text">Hi, <b id="helloName"></b></span>
-        <button id="btnEditName" class="link-btn" type="button">Change name</button>
-      </div>
+        <button id="banner" class="banner" type="button">
+          <span class="banner-orb" aria-hidden="true"></span>
+          <span class="banner-text" id="bannerText">
+            <span class="banner-title">Up to 10 people. All free.</span>
+            <span class="banner-body">One code, one tap, and your whole squad is in the call.</span>
+          </span>
+          <span class="banner-dots" id="bannerDots"><i class="on"></i><i></i><i></i></span>
+        </button>
 
-      <div class="actions">
-        <button id="btnCreate" class="btn primary" type="button">Create room</button>
+        <div class="tiles">
+          <button id="btnCreate" class="tile tile-hot" type="button">
+            <span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="tile-label">Create room</span>
+          </button>
+          <button id="tileJoin" class="tile tile-dark" type="button">
+            <span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
+            <span class="tile-label">Join room</span>
+          </button>
+        </div>
+
         <div class="join-row">
           <label class="sr-only" for="joinCode">Room code</label>
           <input id="joinCode" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="Enter room code" />
           <button id="btnJoin" class="btn secondary" type="button">Join</button>
         </div>
         <p id="homeError" class="error" hidden></p>
+
+        <div class="section-head"><h3>Recent</h3><button class="link-btn" type="button" data-goto="recent">All rooms &rsaquo;</button></div>
+        <div id="recentStrip" class="recent-strip"></div>
       </div>
 
-      <ol class="steps">
-        <li>Allow the microphone when asked.</li>
-        <li>Create a room and share the short code.</li>
-        <li>Up to nine other people join with that code.</li>
-      </ol>
-
-      <div id="installCard" class="install-card">
-        <h2>Add Realm VC to your Home Screen</h2>
-        <p class="install-sub">It'll open like a normal app, with its own icon.</p>
-        <div class="install-os">
-          <h3>iPhone / iPad (Safari)</h3>
-          <ol>
-            <li>Open this page in <b>Safari</b>.</li>
-            <li>Tap the <b>Share</b> button (the square with an up arrow) at the bottom.</li>
-            <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
-            <li>Tap <b>Add</b>, then open Realm VC from your Home Screen.</li>
-          </ol>
-        </div>
-        <div class="install-os">
-          <h3>Android (Chrome)</h3>
-          <ol>
-            <li>Tap the <b>&#8942;</b> menu at the top right.</li>
-            <li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>
-          </ol>
-          <p class="install-sub">Or get the <a href="https://github.com/Maxjumper940/Realm-VC/raw/main/Realm-VC.apk">Android APK</a>.</p>
-        </div>
+      <div class="tab-page" data-page="recent" hidden>
+        <h2 class="page-title">Recent rooms</h2>
+        <p class="page-sub">Tap one to fill in its code. Rooms only work while the host is still in them.</p>
+        <ul id="recentList" class="recent-list"></ul>
       </div>
+
+      <div class="tab-page" data-page="me" hidden>
+        <h2 class="page-title">Me</h2>
+        <div class="me-card">
+          <span class="hello-avatar" id="helloAvatar">?</span>
+          <div class="me-info"><span class="rv-name" id="meName"></span><span class="page-sub">Your call name</span></div>
+          <button id="btnEditName" class="btn ghost small" type="button">Change</button>
+        </div>
+        <div class="me-card col">
+          <h3>About Realm VC</h3>
+          <p class="page-sub">A group voice call for up to 10 people that runs only on your phone. It does not connect to a Minecraft Realm, a Minecraft server, or any game.</p>
+          <ol class="steps">
+            <li>Allow the microphone when asked.</li>
+            <li>Create a room and share the short code.</li>
+            <li>Up to nine other people join with that code.</li>
+          </ol>
+        </div>
+          <div id="installCard" class="install-card">
+            <h2>Add Realm VC to your Home Screen</h2>
+            <p class="install-sub">It'll open like a normal app, with its own icon.</p>
+            <div class="install-os">
+              <h3>iPhone / iPad (Safari)</h3>
+              <ol>
+                <li>Open this page in <b>Safari</b>.</li>
+                <li>Tap the <b>Share</b> button (the square with an up arrow) at the bottom.</li>
+                <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+                <li>Tap <b>Add</b>, then open Realm VC from your Home Screen.</li>
+              </ol>
+            </div>
+            <div class="install-os">
+              <h3>Android (Chrome)</h3>
+              <ol>
+                <li>Tap the <b>&#8942;</b> menu at the top right.</li>
+                <li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>
+              </ol>
+              <p class="install-sub">Or get the <a href="https://github.com/Maxjumper940/Realm-VC/raw/main/Realm-VC.apk">Android APK</a>.</p>
+            </div>
+          </div>
+      </div>
+
+      <nav class="tabbar" aria-label="Realm VC">
+        <button type="button" data-tab="call" aria-current="page"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Call</span></button>
+        <button type="button" data-tab="recent"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Recent</span></button>
+        <button type="button" data-tab="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span>Me</span></button>
+      </nav>
     </section>
 
     <section id="room" class="screen" hidden>
@@ -110,6 +167,7 @@
   </main>
   <script src="peerjs.min.js"></script>
   <script src="app.js"></script>
+  <script src="ui.js"></script>
   <script>
     if (window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches) {
       var c = document.getElementById("installCard"); if (c) c.hidden = true;

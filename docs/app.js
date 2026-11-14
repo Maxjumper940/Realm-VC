@@ -133,6 +133,7 @@
     home.hidden = false;
     helloName.textContent = myName;
     helloAvatar.textContent = myName.charAt(0).toUpperCase();
+    if (window.realmvcUiRefresh) window.realmvcUiRefresh();
     roomCodeDisplay.textContent = "——————";
     roomStatus.textContent = "";
   }
@@ -152,7 +153,7 @@
       });
     });
     peopleList.innerHTML = items.map((p) => (
-      `<li><span class="who"><span class="dot${p.live ? "" : " off"}"></span>${escapeHtml(p.name)}</span><span class="meta">${escapeHtml(p.meta)}</span></li>`
+      `<li><span class="who"><span class="dot${p.live ? "" : " off"}"></span><span class="rv-name">${escapeHtml(p.name)}</span></span><span class="meta">${escapeHtml(p.meta)}</span></li>`
     )).join("");
     const total = 1 + remotes.size;
     if (!leaving) {
