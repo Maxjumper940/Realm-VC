@@ -16,12 +16,39 @@
 </head>
 <body>
   <main id="app">
-    <section id="home" class="screen">
+    <section id="nameScreen" class="screen" hidden>
+      <header class="brand">
+        <p class="eyebrow">Phone group call</p>
+        <h1><span>REALM</span> VC</h1>
+      </header>
+      <div class="gate-head">
+        <h2>What should we call you?</h2>
+        <p class="gate-sub">This is the name everyone in your room will see.</p>
+      </div>
+      <form id="nameForm" class="gate-card" novalidate>
+        <label class="field-label" for="nameInput">Your name</label>
+        <div class="field">
+          <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          <input id="nameInput" class="name-input" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" placeholder="e.g. Veylin" />
+        </div>
+        <p id="nameError" class="error" hidden></p>
+        <button class="btn primary" type="submit">Continue</button>
+        <p class="gate-note">Your name stays on this phone. Change it any time.</p>
+      </form>
+    </section>
+
+    <section id="home" class="screen" hidden>
       <header class="brand">
         <p class="eyebrow">Phone group call</p>
         <h1><span>REALM</span> VC</h1>
         <p class="lede">A group voice call for up to 10 people that runs only on your phone. It does not connect to a Minecraft Realm, a Minecraft server, or any game.</p>
       </header>
+
+      <div class="hello-row">
+        <span class="hello-avatar" id="helloAvatar">?</span>
+        <span class="hello-text">Hi, <b id="helloName"></b></span>
+        <button id="btnEditName" class="link-btn" type="button">Change name</button>
+      </div>
 
       <div class="actions">
         <button id="btnCreate" class="btn primary" type="button">Create room</button>

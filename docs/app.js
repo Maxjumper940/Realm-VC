@@ -24,6 +24,16 @@
     config: ICE_CONFIG
   };
 
+  const nameScreen = document.getElementById("nameScreen");
+  const nameForm = document.getElementById("nameForm");
+  const nameInput = document.getElementById("nameInput");
+  const nameError = document.getElementById("nameError");
+  const helloName = document.getElementById("helloName");
+  const helloAvatar = document.getElementById("helloAvatar");
+  const btnEditName = document.getElementById("btnEditName");
+  let myName = "";
+  try { myName = (localStorage.getItem("realmvcName") || "").trim(); } catch (e) {}
+  function cleanName(n) { return String(n || "").replace(/\s+/g, " ").trim().slice(0, 20); }
   const home = document.getElementById("home");
   const room = document.getElementById("room");
   const homeError = document.getElementById("homeError");
@@ -108,9 +118,21 @@
     renderPeople();
   }
 
-  function showHome() {
+  function showNameScreen() {
     room.hidden = true;
+    home.hidden = true;
+    nameScreen.hidden = false;
+    nameInput.value = myName;
+    setTimeout(() => nameInput.focus(), 50);
+  }
+
+  function showHome() {
+    if (!myName) { showNameScreen(); return; }
+    room.hidden = true;
+    nameScreen.hidden = true;
     home.hidden = false;
+    helloName.textContent = myName;
+    helloAvatar.textContent = myName.charAt(0).toUpperCase();
     roomCodeDisplay.textContent = "——————";
     roomStatus.textContent = "";
   }
@@ -124,7 +146,7 @@
     });
     remotes.forEach((info, id) => {
       items.push({
-        name: shortName(id),
+        name: info.name || shortName(id),
         meta: info.stream ? "Connected" : "Connecting…",
         live: !!info.stream
       });
@@ -138,10 +160,10 @@
         roomStatus.textContent = "Room is full (" + MAX_PEOPLE + " of " + MAX_PEOPLE + ").";
       } else if (isHost) {
         roomStatus.textContent = total === 1
-          ? "Waiting for others. Share the code to invite up to 2 people."
-          : `${total} of 3 in the room.`;
+          ? "Waiting for others. Share the code to invite up to " + (MAX_PEOPLE - 1) + " people."
+          : `${total} of ${MAX_PEOPLE} in the room.`;
       } else {
-        roomStatus.textContent = `${total} of 3 in the room.`;
+        roomStatus.textContent = `${total} of ${MAX_PEOPLE} in the room.`;
       }
     }
   }
@@ -209,7 +231,11 @@
 
   function handleMessage(fromId, data) {
     if (!data || typeof data !== "object") return;
-    if (data.type === "welcome") {
+    if (data.type === "hello") {
+      const info = ensureRemote(fromId);
+      info.name = cleanName(data.name) || info.name;
+      renderPeople();
+    } else if (data.type === "welcome") {
       const others = Array.isArray(data.peers) ? data.peers : [];
       others.forEach((otherId) => {
         if (otherId && otherId !== peer.id) connectToPeer(otherId, true);
@@ -233,7 +259,8 @@
     const id = conn.peer;
     const info = ensureRemote(id);
     info.conn = conn;
-    conn.on("open", () => { conn._everOpen = true; });
+    conn.on("open", () => { conn._everOpen = true; sendTo(conn, { type: "hello", name: myName }); });
+    if (conn.metadata && conn.metadata.name) info.name = cleanName(conn.metadata.name);
     conn.on("data", (data) => handleMessage(id, data));
     conn.on("close", () => dropRemote(id, "Someone disconnected."));
     conn.on("error", () => dropRemote(id, "A connection dropped."));
@@ -260,7 +287,7 @@
       }
       return;
     }
-    const conn = peer.connect(otherId, { reliable: true });
+    const conn = peer.connect(otherId, { reliable: true, metadata: { name: myName } });
     hookDataConnection(conn, false);
     conn.on("open", () => {});
     if (alsoCall && localStream) {
@@ -384,7 +411,7 @@
       leaving = false;
       bindPeerEvents(false);
       const dest = hostIdFor(code);
-      const conn = peer.connect(dest, { reliable: true });
+      const conn = peer.connect(dest, { reliable: true, metadata: { name: myName } });
       hookDataConnection(conn, false);
       const opened = await new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error("No room was found with that code, or the host is offline.")), 25000);
@@ -441,7 +468,19 @@
     leaving = false;
   }
 
-  btnCreate.addEventListener("click", startHost);
+  nameForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const n = cleanName(nameInput.value);
+    if (n.length < 2) { nameError.textContent = "Enter your name (at least 2 letters)."; nameError.hidden = false; return; }
+    nameError.hidden = true;
+    myName = n;
+    try { localStorage.setItem("realmvcName", n); } catch (err) {}
+    showHome();
+  });
+  btnEditName.addEventListener("click", showNameScreen);
+  showHome();
+
+  btnCreate.addEventListener("click", () => startHost());
   btnJoin.addEventListener("click", () => startJoin(joinInput.value));
   joinInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") startJoin(joinInput.value);

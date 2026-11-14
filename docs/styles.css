@@ -124,3 +124,28 @@ input:focus { outline: none; border-color: var(--pink); box-shadow: var(--glow);
 .install-card b { color: var(--ink); }
 .install-sub { margin: 0 0 6px; color: var(--muted); font-size: 0.9rem; }
 .install-card a { color: var(--rose); text-decoration: underline; }
+
+/* Name screen (FreeCut-style gate) */
+.gate-head { margin: 26px 0 20px; text-align: center; }
+.gate-head h2 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 800; color: #fff; text-shadow: 0 0 18px rgba(255, 79, 168, 0.55); }
+.gate-sub { margin: 0; color: var(--muted); }
+.gate-card {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px; border-radius: 18px;
+  background: rgba(255, 79, 168, 0.06);
+  border: 1px solid rgba(255, 79, 168, 0.28);
+  box-shadow: 0 10px 40px rgba(255, 31, 122, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.field-label { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pink); }
+.field { position: relative; }
+.field-icon { position: absolute; left: 14px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%);
+  fill: none; stroke: var(--pink); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+input.name-input { width: 100%; padding-left: 44px; text-transform: none; letter-spacing: 0.01em; }
+.gate-note { margin: 0; text-align: center; font-size: 0.8rem; color: var(--muted); }
+.hello-row { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 10px 12px;
+  border-radius: 14px; background: rgba(255, 79, 168, 0.06); border: 1px solid rgba(255, 79, 168, 0.22); }
+.hello-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink), var(--hot)); color: #fff; font-weight: 800; box-shadow: var(--glow); }
+.hello-text { flex: 1; color: var(--muted); }
+.hello-text b { color: #fff; }
+.link-btn { background: none; border: 0; color: var(--pink); font: inherit; font-size: 0.85rem; text-decoration: underline; cursor: pointer; padding: 4px; }
