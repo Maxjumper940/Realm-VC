@@ -29,3 +29,13 @@ There's no App Store app yet. iPhone users can use the web version instead:
 4. Create a room and share the code, or enter a code to join. Android and iPhone users can be in the same room.
 
 Keep the app open while you're in a call. iPhone may pause the mic if you switch apps or lock the screen.
+
+## Keeping the call on while you play (Android)
+
+Version 1.3.0 keeps the call running when you switch to Minecraft or another game. If Android still closes it on your phone:
+
+1. When Realm VC asks to ignore battery optimisation, tap **Allow**.
+2. Or go to Settings > Apps > Realm VC > Battery and choose **Unrestricted** (on some phones it's called "No restrictions" or "Allow background activity").
+3. On Xiaomi, Tecno, Infinix, itel, Oppo and Vivo phones, also turn on **Autostart** for Realm VC, and lock it in the recent-apps screen (pull it down or tap the lock icon) so the phone's cleaner doesn't close it.
+
+If the phone does close the call page anyway, Realm VC now rebuilds it and rejoins the same room code automatically.
