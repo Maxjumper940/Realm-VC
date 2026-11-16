@@ -39,3 +39,11 @@ Version 1.3.0 keeps the call running when you switch to Minecraft or another gam
 3. On Xiaomi, Tecno, Infinix, itel, Oppo and Vivo phones, also turn on **Autostart** for Realm VC, and lock it in the recent-apps screen (pull it down or tap the lock icon) so the phone's cleaner doesn't close it.
 
 If the phone does close the call page anyway, Realm VC now rebuilds it and rejoins the same room code automatically.
+
+## Recording calls (v1.7.0)
+
+Android does not let screen recorders capture normal voice-call audio. To record a Realm VC call with Realm Recorder:
+
+1. Open Realm VC, go to **Me**, and turn on **Recording mode** before joining a room.
+2. Wear headphones (the phone's echo canceller is off in this mode).
+3. In Realm Recorder pick **Internal audio** (or **Internal + Mic** to add your own voice) and **Realm VC** or **All compatible apps**.
