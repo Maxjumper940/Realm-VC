@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>voice guard browser check</title></head>
+<body>
+<script src="../android/assets/voice-guard.js"></script>
+<script>
+window.__result = (async function () {
+  try {
+  if (!window.VoiceGuard) return "missing VoiceGuard";
+  var sr = 16000;
+  var n = 16000;
+  var ctx = new OfflineAudioContext(1, n, sr);
+  var blob = new Blob([VoiceGuard.workletSource()], { type: "application/javascript" });
+  var url = URL.createObjectURL(blob);
+  await ctx.audioWorklet.addModule(url);
+  URL.revokeObjectURL(url);
+  var buffer = ctx.createBuffer(2, n, sr);
+  var mic = buffer.getChannelData(0);
+  var ref = buffer.getChannelData(1);
+  var delay = Math.round(0.02 * sr);
+  for (var i = 0; i < n; i++) {
+    var t = i / sr;
+    var gate = (t % 0.5) < 0.25 ? 1 : 0;
+    ref[i] = gate * 0.1 * Math.sin(2 * Math.PI * 220 * t);
+    var echo = i >= delay ? 0.7 * ref[i - delay] : 0;
+    var talk = ((t + 0.1) % 0.6) < 0.3 ? 0.05 * Math.sin(2 * Math.PI * 180 * t) : 0;
+    mic[i] = talk + echo;
+  }
+  var src = ctx.createBufferSource();
+  src.buffer = buffer;
+  var splitter = ctx.createChannelSplitter(2);
+  var merger = ctx.createChannelMerger(2);
+  src.connect(splitter);
+  splitter.connect(merger, 0, 0);
+  splitter.connect(merger, 1, 1);
+  var node = new AudioWorkletNode(ctx, "realmvc-guard", {
+    numberOfInputs: 1,
+    numberOfOutputs: 1,
+    outputChannelCount: [1],
+    channelCount: 2,
+    channelCountMode: "explicit",
+    channelInterpretation: "discrete"
+  });
+  merger.connect(node);
+  node.connect(ctx.destination);
+  src.start();
+  var rendered = await ctx.startRendering();
+  var out = rendered.getChannelData(0);
+  var proc = VoiceGuard.createProcessor(sr);
+  var direct = new Float32Array(n);
+  var q = 128;
+  for (var b = 0; b < n; b += q) {
+    var len = Math.min(q, n - b);
+    var m = mic.subarray(b, b + len);
+    var r = ref.subarray(b, b + len);
+    var o = new Float32Array(len);
+    proc.process(m, r, o);
+    direct.set(o, b);
+  }
+  var err = 0, sig = 0, peak = 0;
+  for (var j = 0; j < n; j++) {
+    var d = out[j] - direct[j];
+    err += d * d;
+    sig += direct[j] * direct[j];
+    var a = out[j] < 0 ? -out[j] : out[j];
+    if (a > peak) peak = a;
+  }
+  var rel = Math.sqrt(err) / (Math.sqrt(sig) + 1e-9);
+  var rms = function (b) { var s = 0; for (var i = 0; i < b.length; i++) s += b[i] * b[i]; return Math.sqrt(s / b.length); };
+  var c = 0, ea = 0, eb = 0;
+  for (var k = 0; k < n; k++) { c += out[k] * direct[k]; ea += out[k] * out[k]; eb += direct[k] * direct[k]; }
+  var likeness = c / Math.sqrt(ea * eb + 1e-12);
+  var probeUrl = URL.createObjectURL(new Blob(["class Probe extends AudioWorkletProcessor { process(inputs, outputs) { var input = inputs[0] || []; var ch0 = input[0]; var ch1 = input[1]; var out = outputs[0][0]; if (out) { for (var i = 0; i < out.length; i++) out[i] = (ch1 && ch1.length === out.length ? ch1[i] : 0) + (i === 0 ? (input.length / 1000) : 0); } return true; } } registerProcessor('probe', Probe);"], { type: "application/javascript" }));
+  var pctx = new OfflineAudioContext(1, n, sr);
+  await pctx.audioWorklet.addModule(probeUrl);
+  var psrc = pctx.createBufferSource();
+  psrc.buffer = buffer;
+  var ps = pctx.createChannelSplitter(2);
+  var pm = pctx.createChannelMerger(2);
+  psrc.connect(ps);
+  ps.connect(pm, 0, 0);
+  ps.connect(pm, 1, 1);
+  var pnode = new AudioWorkletNode(pctx, "probe", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 2, channelCountMode: "explicit", channelInterpretation: "discrete" });
+  pm.connect(pnode);
+  pnode.connect(pctx.destination);
+  psrc.start();
+  var pr = await pctx.startRendering();
+  var pref = pr.getChannelData(0);
+  var info = " rel=" + rel.toFixed(4) + " like=" + likeness.toFixed(3) + " rmsOut=" + rms(out).toFixed(4) + " rmsDirect=" + rms(direct).toFixed(4) + " probe0=" + pref[0].toFixed(4) + " probeRms=" + rms(pref).toFixed(4) + " refRms=" + rms(ref).toFixed(4);
+  if (!(peak <= VoiceGuard.LIMIT + 0.001)) return "peak " + peak + info;
+  if (!(rel < 0.02)) return "worklet mismatch" + info;
+  return "ok rel=" + rel.toFixed(6) + " peak=" + peak.toFixed(4);
+  } catch (e) {
+    return "ERR " + (e && (e.stack || e.message) || e);
+  }
+})();
+</script>
+</body>
+</html>
