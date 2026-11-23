@@ -100,9 +100,8 @@
           <button id="btnEditName" class="btn ghost small" type="button">Change</button>
         </div>
         <div class="me-card col">
-          <h3>Recording mode</h3>
-          <label class="rec-toggle"><input type="checkbox" id="recordableToggle"> <span>Let screen recorders hear the call</span></label>
-          <p class="page-sub">Turn this on before you join a room if you record with Realm Recorder. The call then plays as normal media so the recorder can hear the other people. Your voice stays at one steady level on the phone speaker and on headphones, including while Minecraft is in front. The recording still has their voices rather than your own mic: the recorder leaves the microphone to the call.</p>
+          <h3>Recording</h3>
+          <p class="page-sub">Friends' voices play as normal media, full quality, through the speaker or headphones. A screen recorder set to internal audio (XRecorder, Realm Recorder) captures that playback directly. Nothing has to be turned on first. The recording has their voices rather than your own mic: the recorder leaves the microphone to the call. Your voice stays at one steady level on the phone speaker and on headphones, including while Minecraft is in front.</p>
         </div>
         <div class="me-card col">
           <h3>About Realm VC</h3>
@@ -143,6 +142,7 @@
   </main>
   <script src="peerjs.min.js"></script>
   <script src="voice-guard.js"></script>
+  <script src="call-audio.js"></script>
   <script src="app.js"></script>
   <script src="ui.js"></script>
 </body>

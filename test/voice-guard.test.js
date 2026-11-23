@@ -261,6 +261,40 @@ test("gain has a hard ceiling and does not accumulate without bound", () => {
   assert.ok(hi - lo < 0.08, "gain still walking: " + lo + ".." + hi);
 });
 
+test("a full-band mic is not low-passed: 3 kHz stays with the vowel", () => {
+  var sr = 48000;
+  var proc = VG.createProcessor(sr);
+  var n = sr;
+  var block = 480;
+  var oLow = 0;
+  var oHigh = 0;
+  var counted = 0;
+  for (var b = 0; b < n; b += block) {
+    var mic = new Float32Array(block);
+    var ref = new Float32Array(block);
+    for (var j = 0; j < block; j++) {
+      var t = (b + j) / sr;
+      mic[j] = 0.08 * Math.sin(2 * Math.PI * 200 * t) + 0.04 * Math.sin(2 * Math.PI * 3000 * t);
+    }
+    var out = new Float32Array(block);
+    proc.process(mic, ref, out);
+    if (b < sr * 0.3) continue;
+    for (var j2 = 0; j2 < block; j2++) {
+      var t2 = (b + j2) / sr;
+      oLow += out[j2] * Math.sin(2 * Math.PI * 200 * t2);
+      oHigh += out[j2] * Math.sin(2 * Math.PI * 3000 * t2);
+      counted++;
+    }
+  }
+  var aLow = Math.abs(2 * oLow / counted);
+  var aHigh = Math.abs(2 * oHigh / counted);
+  // Input amplitudes are 0.08 and 0.04, so the high tone is half the low one.
+  // A low-pass that ate consonants would drop this ratio toward zero.
+  var ratio = aHigh / aLow;
+  assert.ok(aLow > 0.01, "low tone missing " + aLow);
+  assert.ok(ratio > 0.35, "3 kHz collapsed against 200 Hz: " + ratio);
+});
+
 test("a full-scale impulse cannot come out clipped past the limiter", () => {
   var proc = VG.createProcessor(16000);
   var mic = new Float32Array(320);

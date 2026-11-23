@@ -9,8 +9,8 @@ signature users already have installed:
     REALM_VC_STOREPASS=... REALM_VC_KEYALIAS=... \\
     python3 scripts/pack-apk.py
 
-Without that, a local debug keystore under /tmp is used and Android will
-refuse to install the APK over a copy signed with the previous key.
+Without that, android/realmvc-release.jks is used (created on first run).
+Android will refuse to install the APK over a copy signed with a different key.
 """
 
 import os
@@ -33,8 +33,8 @@ def overlay_map():
         path = os.path.join(ASSETS, name)
         if os.path.isfile(path):
             found["assets/" + name] = path
-    if "assets/app.js" not in found or "assets/voice-guard.js" not in found:
-        sys.exit("android/assets is missing app.js or voice-guard.js")
+    if "assets/app.js" not in found or "assets/voice-guard.js" not in found or "assets/call-audio.js" not in found:
+        sys.exit("android/assets is missing app.js, voice-guard.js, or call-audio.js")
     return found
 
 
@@ -62,7 +62,9 @@ def ensure_keystore():
     ks = os.environ.get("REALM_VC_KEYSTORE")
     if ks:
         return ks, os.environ["REALM_VC_STOREPASS"], os.environ.get("REALM_VC_KEYPASS", os.environ["REALM_VC_STOREPASS"]), os.environ.get("REALM_VC_KEYALIAS", "realmvc")
-    ks = "/tmp/realmvc-dev.jks"
+    # Checked in so later packs sign with the same key as this release.
+    # REALM_VC_KEYSTORE still wins when a different key is supplied.
+    ks = os.path.join(ROOT, "android", "realmvc-release.jks")
     store = "realmvc-dev"
     alias = "realmvc"
     if not os.path.exists(ks):

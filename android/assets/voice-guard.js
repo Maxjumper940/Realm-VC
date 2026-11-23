@@ -1,12 +1,12 @@
 // Send-path guard for Realm VC.
 //
 // The platform auto-gain (getUserMedia autoGainControl) is an integrator with a
-// very high ceiling. Recording mode turns the platform echo canceller off so
-// Android plays the call as ordinary media that Realm Recorder can capture, and
-// on a phone speaker the mic then hears that playback. The auto-gain treats the
-// growing loop as speech that is still too quiet and keeps raising gain until
-// the words clip into a scream. Headphones only hide it because the mic no
-// longer hears the speaker.
+// very high ceiling. The call leaves that, the platform echo canceller, and the
+// platform noise suppressor off, so Android plays the call as ordinary media
+// instead of a voice call. On a phone speaker the mic then hears that playback.
+// The auto-gain would treat the growing loop as speech that is still too quiet
+// and keep raising gain until the words clip into a scream. Headphones only
+// hide it because the mic no longer hears the speaker.
 //
 // This guard replaces that integrator:
 //   * a leaky NLMS canceller subtracts playback (the reference) from the mic
@@ -283,7 +283,12 @@
   function attach(rawStream) {
     var Ctx = typeof AudioContext !== "undefined" ? AudioContext : null;
     if (!Ctx || !rawStream) return Promise.resolve(passthrough(rawStream));
-    var ctx = new Ctx({ latencyHint: "interactive" });
+    var ctx;
+    try {
+      ctx = new Ctx({ latencyHint: "interactive", sampleRate: 48000 });
+    } catch (e) {
+      ctx = new Ctx({ latencyHint: "interactive" });
+    }
     var resume = function () { if (ctx.state !== "running") ctx.resume().catch(function () {}); };
     var remotes = new Map();
     var closed = false;

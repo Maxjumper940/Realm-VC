@@ -42,11 +42,13 @@ If the phone does close the call page anyway, Realm VC now rebuilds it and rejoi
 
 ## Recording calls
 
-Android does not let screen recorders capture normal voice-call audio. To record a Realm VC call with Realm Recorder:
+Friends' voices play as normal media, so a screen recorder can capture them directly:
 
-1. Open Realm VC, go to **Me**, and turn on **Recording mode** before joining a room.
-2. In Realm Recorder pick **Internal audio** and **Realm VC** or **All compatible apps**.
+1. In the recorder pick **Internal audio** and **Realm VC** (or **All compatible apps**).
+2. Join the room. You do not have to turn a recording mode on first.
 
-Recording mode plays the call as normal media so the recorder can hear it. The platform echo canceller is off in that mode, which used to let the phone speaker leak back into the mic. The mic's automatic gain then kept turning your voice up until it clipped and the words were gone. Realm VC now leaves that automatic gain off. A send guard subtracts the audio being played, holds the mic at one level with a hard ceiling, and limits peaks, on the speaker and on headphones, including while the call sits behind Minecraft.
+Realm VC does not open the call as a phone call. Phone-call playback is routed to the earpiece, run through the voice processor (which cuts the high end off speech), and blocked from screen recorders, so the recorder would otherwise listen with the microphone and the voices would sound muffled. Media playback stays full-band on the speaker or headphones, and the app allows other apps to capture it.
 
-Your own voice is not in that video. Realm Recorder will not open the microphone while Realm VC is using it, because Android lets one app record at a time and taking the mic would mute the call. Internal audio only hears what the app plays. Realm VC plays the other people. It does not play your mic out of the speaker, because that is the feedback loop above.
+The platform echo canceller and automatic gain stay off on that media path, which used to let the phone speaker leak back into the mic and ramp your voice up until it clipped. A send guard subtracts the audio being played, holds the mic at one level with a hard ceiling, and limits peaks, on the speaker and on headphones, including while the call sits behind Minecraft.
+
+Your own voice is not in that video. The recorder will not open the microphone while Realm VC is using it, because Android lets one app record at a time and taking the mic would mute the call. Internal audio only hears what the app plays. Realm VC plays the other people. It does not play your mic out of the speaker, because that is the feedback loop above.

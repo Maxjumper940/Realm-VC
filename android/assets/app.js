@@ -98,37 +98,49 @@
     return typeof RealmVC !== "undefined" ? RealmVC : null;
   }
 
-  function recordableAudio() {
-    try { return localStorage.getItem("realmvcRecordable") === "1"; } catch (e) { return false; }
-  }
+  if (window.RealmCallAudio) RealmCallAudio.install(window);
 
   function micConstraints() {
-    // autoGainControl must stay off. It is an adaptive gain with a very high
-    // ceiling. Recording mode also turns the platform echo canceller off so the
-    // call plays as normal media (Realm Recorder can capture that; it cannot
-    // capture voice-call audio). On the phone speaker the mic then hears the
-    // call, and the auto-gain keeps raising the level while you talk until the
-    // words clip. The same stack happens with the canceller requested, because
-    // this WebView plays remote audio from an <audio> tag that often is not the
-    // canceller's reference. VoiceGuard caps the level, subtracts that playback,
-    // and limits peaks. It does not play the mic back out the speaker.
-    var recordable = recordableAudio();
-    return {
-      echoCancellation: !recordable,
-      noiseSuppression: true,
-      autoGainControl: false
-    };
+    // Platform echo cancellation, noise suppression, and auto-gain stay off.
+    // Requesting them puts Android WebView into a voice call: the mic is
+    // processed at 16 kHz (no consonants above 8 kHz, and the suppressor dulls
+    // the ones below that) and playback uses USAGE_VOICE_COMMUNICATION, which
+    // routes to the earpiece and cannot be captured by a screen recorder.
+    // VoiceGuard is the echo protection instead. It caps the level, subtracts
+    // playback, and limits peaks. It does not play the mic out the speaker.
+    if (window.RealmCallAudio) return RealmCallAudio.micConstraints();
+    return { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 48000 };
+  }
+
+  function allowRecorderCapture() {
+    // WebView sets allowedCapturePolicy to system-only when audio starts, which
+    // blocks XRecorder even for a media stream. Re-apply ALLOW_CAPTURE_BY_ALL
+    // and leave voice-call mode if the WebView turned it on.
+    const bridge = native();
+    if (bridge && bridge.enablePlaybackCapture) {
+      try { bridge.enablePlaybackCapture(); } catch (e) {}
+    }
   }
 
   async function getMic() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error("This Android WebView cannot capture audio. Update Android System WebView and try again.");
     }
-    const raw = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: false });
+    const preferred = micConstraints();
+    let raw;
+    try {
+      raw = await navigator.mediaDevices.getUserMedia({ audio: preferred, video: false });
+    } catch (err) {
+      const fallback = (window.RealmCallAudio && RealmCallAudio.fallbackConstraints()) || {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false
+      };
+      raw = await navigator.mediaDevices.getUserMedia({ audio: fallback, video: false });
+    }
     const track = raw.getAudioTracks()[0];
     if (track && track.applyConstraints) {
-      try { await track.applyConstraints(micConstraints()); } catch (e) {}
+      try { await track.applyConstraints(preferred); } catch (e) {}
     }
+    allowRecorderCapture();
     micStream = raw;
     if (voiceGuard) {
       try { voiceGuard.close(); } catch (e) {}
@@ -253,6 +265,7 @@
     const play = audio.play();
     if (play && play.catch) play.catch(() => {});
     if (voiceGuard) voiceGuard.addRemote(id, stream);
+    allowRecorderCapture();
     renderPeople();
   }
 
@@ -583,7 +596,12 @@
 
   // If the WebView suspends the guard while Minecraft is in front, send the raw
   // mic (auto-gain already off) instead of going silent. Swap back when it runs.
-  setInterval(refreshSendTrack, 1000);
+  // The capture policy is re-applied because WebView sets it when the playback
+  // stream is created, which can be after the mic opened.
+  setInterval(() => {
+    refreshSendTrack();
+    if (peer) allowRecorderCapture();
+  }, 1000);
 
   // realmvcSweep: anyone still "Connecting…" after 30s, or whose link closed, is removed so the room doesn't fill with ghosts.
   setInterval(() => {
